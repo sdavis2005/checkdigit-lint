@@ -19,6 +19,22 @@ export function kindForLength(digitCount: number): CodeKind | undefined {
   }
 }
 
+// Same three formats, but keyed on the length of the body alone (full length
+// minus the check digit) — what --generate sees, since the whole point is
+// that the check digit isn't there yet.
+export function kindForBodyLength(bodyLength: number): CodeKind | undefined {
+  switch (bodyLength) {
+    case 9:
+      return "ISBN-10";
+    case 11:
+      return "UPC-A";
+    case 12:
+      return "EAN-13";
+    default:
+      return undefined;
+  }
+}
+
 // body has 9 digits (0-9). Result is 0-10, where 10 is displayed as 'X'.
 export function isbn10CheckDigit(body: readonly number[]): number {
   let sum = 0;

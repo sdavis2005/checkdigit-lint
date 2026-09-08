@@ -59,6 +59,40 @@ other character — a stray letter, a comma from a badly exported CSV — is
 reported as a parse error at its exact column, before checksum validation
 even runs.
 
+## Generating a missing check digit
+
+`--generate` runs the tool the other way around: point it at a file of code
+*bodies* — the digits with the check digit left off — and it appends the
+correct one to each line.
+
+```
+checkdigit-lint --generate bodies.txt
+```
+
+Given `bodies.txt`:
+
+```
+978-0-306-40615
+0-306-40615
+03600029145
+```
+
+Running:
+
+```
+$ node dist/main.js --generate bodies.txt
+978-0-306-40615-9
+0-306-40615-2
+036000291455
+```
+
+The body length picks the format the same way full-code length does, minus
+the check digit: 9 digits for ISBN-10, 11 for UPC-A, 12 for EAN-13. `X` isn't
+accepted anywhere in the input, since in every one of these formats it can
+only ever be the check digit itself, never a body digit. Parse and
+length errors are reported the same way as in the default mode, with a line
+and column pointer.
+
 ## Building
 
 There are no dependencies to install. Compile with the TypeScript compiler
@@ -71,6 +105,6 @@ node dist/main.js codes.txt
 
 ## Status
 
-Early. It validates; it does not yet generate missing check digits or let
-you override the auto-detected format. See the roadmap in the project
-tracker for what's next.
+Early. It validates and can generate a missing check digit, but it does not
+yet let you override the auto-detected format. See the roadmap in the
+project tracker for what's next.
