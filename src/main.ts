@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
 import { checkLine, generateLine } from "./validate.js";
+import { parseCodeKind, type CodeKind } from "./checksum.js";
 
 function usage(): never {
-  process.stderr.write("usage: checkdigit-lint [--generate] <file>\n");
+  process.stderr.write("usage: checkdigit-lint [--generate] [--type isbn10|upc-a|ean13] <file>\n");
   process.exit(2);
 }
 
@@ -13,26 +14,43 @@ function formatError(file: string, lineNumber: number, rawLine: string, column: 
   return `${location}: error: ${message}\n  ${rawLine}\n  ${pointer}\n`;
 }
 
-function parseArgs(argv: string[]): { generate: boolean; file: string } {
+function parseArgs(argv: string[]): { generate: boolean; file: string; type: CodeKind | undefined } {
   let generate = false;
+  let type: CodeKind | undefined;
   const positional: string[] = [];
 
-  for (const arg of argv) {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!;
     if (arg === "--generate") {
       generate = true;
-    } else if (arg.startsWith("-")) {
+      continue;
+    }
+    if (arg === "--type" || arg.startsWith("--type=")) {
+      const value = arg === "--type" ? argv[++i] : arg.slice("--type=".length);
+      if (value === undefined) {
+        process.stderr.write("checkdigit-lint: --type requires a value (isbn10, upc-a, or ean13)\n");
+        usage();
+      }
+      const parsed = parseCodeKind(value);
+      if (parsed === undefined) {
+        process.stderr.write(`checkdigit-lint: unknown --type '${value}' (expected isbn10, upc-a, or ean13)\n`);
+        usage();
+      }
+      type = parsed;
+      continue;
+    }
+    if (arg.startsWith("-")) {
       process.stderr.write(`checkdigit-lint: unknown option '${arg}'\n`);
       usage();
-    } else {
-      positional.push(arg);
     }
+    positional.push(arg);
   }
 
   const file = positional[0];
   if (file === undefined) {
     usage();
   }
-  return { generate, file };
+  return { generate, file, type };
 }
 
 function readLines(file: string): string[] {
@@ -47,7 +65,7 @@ function readLines(file: string): string[] {
   return contents.split(/\r?\n/);
 }
 
-function runValidate(file: string, lines: string[]): void {
+function runValidate(file: string, lines: string[], type: CodeKind | undefined): void {
   let checked = 0;
   let invalid = 0;
 
@@ -56,7 +74,7 @@ function runValidate(file: string, lines: string[]): void {
     const lineNumber = index + 1;
     checked++;
 
-    const result = checkLine(rawLine);
+    const result = checkLine(rawLine, type);
     if (result.issue !== undefined) {
       invalid++;
       process.stderr.write(formatError(file, lineNumber, rawLine, result.issue.column, result.issue.message));
@@ -68,7 +86,7 @@ function runValidate(file: string, lines: string[]): void {
   process.exit(invalid > 0 ? 1 : 0);
 }
 
-function runGenerate(file: string, lines: string[]): void {
+function runGenerate(file: string, lines: string[], type: CodeKind | undefined): void {
   let processed = 0;
   let failed = 0;
 
@@ -77,7 +95,7 @@ function runGenerate(file: string, lines: string[]): void {
     const lineNumber = index + 1;
     processed++;
 
-    const result = generateLine(rawLine);
+    const result = generateLine(rawLine, type);
     if (result.issue !== undefined) {
       failed++;
       process.stderr.write(formatError(file, lineNumber, rawLine, result.issue.column, result.issue.message));
@@ -93,13 +111,13 @@ function runGenerate(file: string, lines: string[]): void {
 }
 
 function main(): void {
-  const { generate, file } = parseArgs(process.argv.slice(2));
+  const { generate, file, type } = parseArgs(process.argv.slice(2));
   const lines = readLines(file);
 
   if (generate) {
-    runGenerate(file, lines);
+    runGenerate(file, lines, type);
   } else {
-    runValidate(file, lines);
+    runValidate(file, lines, type);
   }
 }
 

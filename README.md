@@ -59,6 +59,24 @@ other character — a stray letter, a comma from a badly exported CSV — is
 reported as a parse error at its exact column, before checksum validation
 even runs.
 
+## Overriding the format
+
+Auto-detection picks a format by digit count alone, so a UPC-A with a digit
+dropped by a typo (11 digits instead of 12) doesn't fail as "wrong length" —
+it gets silently reinterpreted as an ISBN-10 and checked against the wrong
+math entirely. If you know every line in a file is meant to be one format,
+pin it with `--type`:
+
+```
+checkdigit-lint --type upc-a codes.txt
+```
+
+Accepted values (case-insensitive): `isbn10`, `upc-a` (or `upc`), `ean13`.
+`--type=upc-a` works too. With `--type` set, a code whose digit count
+doesn't match that format is reported as a length error naming the forced
+format, instead of falling through to auto-detection. `--type` applies to
+`--generate` as well, checked against body length instead of full length.
+
 ## Generating a missing check digit
 
 `--generate` runs the tool the other way around: point it at a file of code
@@ -105,6 +123,7 @@ node dist/main.js codes.txt
 
 ## Status
 
-Early. It validates and can generate a missing check digit, but it does not
-yet let you override the auto-detected format. See the roadmap in the
-project tracker for what's next.
+Early. It validates, can generate a missing check digit, and lets you pin
+the format with `--type`. It doesn't yet handle ISSN/ISMN, read from stdin,
+or have a test suite. See the roadmap in the project tracker for what's
+next.

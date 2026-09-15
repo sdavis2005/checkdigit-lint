@@ -1,4 +1,12 @@
-import { expectedCheckDigit, kindForLength, kindForBodyLength, displayDigit, type CodeKind } from "./checksum.js";
+import {
+  expectedCheckDigit,
+  kindForLength,
+  kindForBodyLength,
+  lengthForKind,
+  bodyLengthForKind,
+  displayDigit,
+  type CodeKind,
+} from "./checksum.js";
 import { parseLine, type Token } from "./parse.js";
 
 export interface CodeIssue {
@@ -21,14 +29,30 @@ function digitValue(token: Token): number {
   return token.char === "X" ? 10 : Number(token.char);
 }
 
-export function checkLine(raw: string): CodeResult {
+export function checkLine(raw: string, forcedKind?: CodeKind): CodeResult {
   const parsed = parseLine(raw);
   if (!parsed.ok) {
     return { kind: undefined, issue: { column: parsed.column, message: parsed.message } };
   }
 
   const { tokens } = parsed;
-  const kind = kindForLength(tokens.length);
+  let kind: CodeKind | undefined;
+  if (forcedKind !== undefined) {
+    const expectedLength = lengthForKind(forcedKind);
+    if (tokens.length !== expectedLength) {
+      const column = tokens.length > 0 ? tokens[tokens.length - 1]!.column + 1 : 1;
+      return {
+        kind: undefined,
+        issue: {
+          column,
+          message: `expected ${expectedLength} digits for ${forcedKind}, got ${tokens.length}`,
+        },
+      };
+    }
+    kind = forcedKind;
+  } else {
+    kind = kindForLength(tokens.length);
+  }
   if (kind === undefined) {
     const column = tokens.length > 0 ? tokens[tokens.length - 1]!.column + 1 : 1;
     return {
@@ -80,14 +104,31 @@ export function checkLine(raw: string): CodeResult {
 // checkLine, an 'X' anywhere is always an error here — it only ever means
 // "this is the check digit", and the whole point of --generate is that the
 // check digit isn't part of the input yet.
-export function generateLine(raw: string): GenerateResult {
+export function generateLine(raw: string, forcedKind?: CodeKind): GenerateResult {
   const parsed = parseLine(raw);
   if (!parsed.ok) {
     return { kind: undefined, code: undefined, issue: { column: parsed.column, message: parsed.message } };
   }
 
   const { tokens } = parsed;
-  const kind = kindForBodyLength(tokens.length);
+  let kind: CodeKind | undefined;
+  if (forcedKind !== undefined) {
+    const expectedLength = bodyLengthForKind(forcedKind);
+    if (tokens.length !== expectedLength) {
+      const column = tokens.length > 0 ? tokens[tokens.length - 1]!.column + 1 : 1;
+      return {
+        kind: undefined,
+        code: undefined,
+        issue: {
+          column,
+          message: `expected ${expectedLength} digit body for ${forcedKind}, got ${tokens.length}`,
+        },
+      };
+    }
+    kind = forcedKind;
+  } else {
+    kind = kindForBodyLength(tokens.length);
+  }
   if (kind === undefined) {
     const column = tokens.length > 0 ? tokens[tokens.length - 1]!.column + 1 : 1;
     return {

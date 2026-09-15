@@ -78,3 +78,46 @@ export function expectedCheckDigit(kind: CodeKind, body: readonly number[]): num
 export function displayDigit(value: number): string {
   return value === 10 ? "X" : String(value);
 }
+
+// Full code length for a kind, the same numbers kindForLength maps back from.
+export function lengthForKind(kind: CodeKind): number {
+  switch (kind) {
+    case "ISBN-10":
+      return 10;
+    case "UPC-A":
+      return 12;
+    case "EAN-13":
+      return 13;
+  }
+}
+
+// Body-only length for a kind (full length minus the check digit).
+export function bodyLengthForKind(kind: CodeKind): number {
+  switch (kind) {
+    case "ISBN-10":
+      return 9;
+    case "UPC-A":
+      return 11;
+    case "EAN-13":
+      return 12;
+  }
+}
+
+// Accepts the handful of spellings someone would reasonably type on a
+// command line for --type; returns undefined for anything else.
+export function parseCodeKind(value: string): CodeKind | undefined {
+  switch (value.toLowerCase()) {
+    case "isbn10":
+    case "isbn-10":
+      return "ISBN-10";
+    case "upc":
+    case "upca":
+    case "upc-a":
+      return "UPC-A";
+    case "ean13":
+    case "ean-13":
+      return "EAN-13";
+    default:
+      return undefined;
+  }
+}
