@@ -4,7 +4,7 @@ import { checkLine, generateLine } from "./validate.js";
 import { parseCodeKind, type CodeKind } from "./checksum.js";
 
 function usage(): never {
-  process.stderr.write("usage: checkdigit-lint [--generate] [--type isbn10|upc-a|ean13] <file>\n");
+  process.stderr.write("usage: checkdigit-lint [--generate] [--type isbn10|upc-a|ean13|issn] <file>\n");
   process.exit(2);
 }
 
@@ -28,12 +28,12 @@ function parseArgs(argv: string[]): { generate: boolean; file: string; type: Cod
     if (arg === "--type" || arg.startsWith("--type=")) {
       const value = arg === "--type" ? argv[++i] : arg.slice("--type=".length);
       if (value === undefined) {
-        process.stderr.write("checkdigit-lint: --type requires a value (isbn10, upc-a, or ean13)\n");
+        process.stderr.write("checkdigit-lint: --type requires a value (isbn10, upc-a, ean13, or issn)\n");
         usage();
       }
       const parsed = parseCodeKind(value);
       if (parsed === undefined) {
-        process.stderr.write(`checkdigit-lint: unknown --type '${value}' (expected isbn10, upc-a, or ean13)\n`);
+        process.stderr.write(`checkdigit-lint: unknown --type '${value}' (expected isbn10, upc-a, ean13, or issn)\n`);
         usage();
       }
       type = parsed;

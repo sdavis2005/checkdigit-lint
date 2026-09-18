@@ -59,23 +59,24 @@ export function checkLine(raw: string, forcedKind?: CodeKind): CodeResult {
       kind: undefined,
       issue: {
         column,
-        message: `expected 10 digits (ISBN-10), 12 digits (UPC-A), or 13 digits (EAN-13), got ${tokens.length}`,
+        message: `expected 8 digits (ISSN), 10 digits (ISBN-10), 12 digits (UPC-A), or 13 digits (EAN-13), got ${tokens.length}`,
       },
     };
   }
 
-  // 'X' is only meaningful as the ISBN-10 check digit; anywhere else it is
-  // not a valid digit for any of the three formats.
+  // 'X' is only meaningful as the check digit of the two mod-11 formats
+  // (ISBN-10, ISSN); anywhere else it is not a valid digit for any format.
+  const canEndInX = kind === "ISBN-10" || kind === "ISSN";
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]!;
     if (token.char !== "X") continue;
-    const isLastOfIsbn10 = kind === "ISBN-10" && i === tokens.length - 1;
-    if (!isLastOfIsbn10) {
+    const isFinalCheckDigit = canEndInX && i === tokens.length - 1;
+    if (!isFinalCheckDigit) {
       return {
         kind,
         issue: {
           column: token.column,
-          message: "'X' is only valid as the final check digit of a 10-digit ISBN",
+          message: "'X' is only valid as the final check digit of an ISBN-10 or ISSN",
         },
       };
     }
@@ -99,11 +100,11 @@ export function checkLine(raw: string, forcedKind?: CodeKind): CodeResult {
   return { kind, issue: undefined };
 }
 
-// Takes a code body with the check digit missing (9 digits for ISBN-10, 11
-// for UPC-A, 12 for EAN-13) and appends the correct check digit. Unlike
-// checkLine, an 'X' anywhere is always an error here — it only ever means
-// "this is the check digit", and the whole point of --generate is that the
-// check digit isn't part of the input yet.
+// Takes a code body with the check digit missing (7 digits for ISSN, 9 for
+// ISBN-10, 11 for UPC-A, 12 for EAN-13) and appends the correct check
+// digit. Unlike checkLine, an 'X' anywhere is always an error here — it
+// only ever means "this is the check digit", and the whole point of
+// --generate is that the check digit isn't part of the input yet.
 export function generateLine(raw: string, forcedKind?: CodeKind): GenerateResult {
   const parsed = parseLine(raw);
   if (!parsed.ok) {
@@ -136,7 +137,7 @@ export function generateLine(raw: string, forcedKind?: CodeKind): GenerateResult
       code: undefined,
       issue: {
         column,
-        message: `expected 9 digits (ISBN-10), 11 digits (UPC-A), or 12 digits (EAN-13) body, got ${tokens.length}`,
+        message: `expected 7 digits (ISSN), 9 digits (ISBN-10), 11 digits (UPC-A), or 12 digits (EAN-13) body, got ${tokens.length}`,
       },
     };
   }

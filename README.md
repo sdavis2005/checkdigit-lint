@@ -1,13 +1,14 @@
 # checkdigit-lint
 
-A command-line tool that checks whether ISBN and barcode numbers in a file
-have valid check digits. Point it at a text file with one code per line and
-it tells you exactly which lines are wrong, down to the column of the bad
-digit.
+A command-line tool that checks whether ISBN, ISSN, and barcode numbers in a
+file have valid check digits. Point it at a text file with one code per line
+and it tells you exactly which lines are wrong, down to the column of the
+bad digit.
 
-It understands three formats, auto-detected by digit count after stripping
+It understands four formats, auto-detected by digit count after stripping
 hyphens and spaces:
 
+- ISSN (8 digits, last one may be `X`)
 - ISBN-10 (10 digits, last one may be `X`)
 - UPC-A (12 digits)
 - EAN-13 / ISBN-13 (13 digits)
@@ -71,8 +72,8 @@ pin it with `--type`:
 checkdigit-lint --type upc-a codes.txt
 ```
 
-Accepted values (case-insensitive): `isbn10`, `upc-a` (or `upc`), `ean13`.
-`--type=upc-a` works too. With `--type` set, a code whose digit count
+Accepted values (case-insensitive): `isbn10`, `upc-a` (or `upc`), `ean13`,
+`issn`. `--type=upc-a` works too. With `--type` set, a code whose digit count
 doesn't match that format is reported as a length error naming the forced
 format, instead of falling through to auto-detection. `--type` applies to
 `--generate` as well, checked against body length instead of full length.
@@ -105,11 +106,11 @@ $ node dist/main.js --generate bodies.txt
 ```
 
 The body length picks the format the same way full-code length does, minus
-the check digit: 9 digits for ISBN-10, 11 for UPC-A, 12 for EAN-13. `X` isn't
-accepted anywhere in the input, since in every one of these formats it can
-only ever be the check digit itself, never a body digit. Parse and
-length errors are reported the same way as in the default mode, with a line
-and column pointer.
+the check digit: 7 digits for ISSN, 9 for ISBN-10, 11 for UPC-A, 12 for
+EAN-13. `X` isn't accepted anywhere in the input, since in every one of
+these formats it can only ever be the check digit itself, never a body
+digit. Parse and length errors are reported the same way as in the default
+mode, with a line and column pointer.
 
 ## Building
 
@@ -123,7 +124,7 @@ node dist/main.js codes.txt
 
 ## Status
 
-Early. It validates, can generate a missing check digit, and lets you pin
-the format with `--type`. It doesn't yet handle ISSN/ISMN, read from stdin,
-or have a test suite. See the roadmap in the project tracker for what's
-next.
+Early. It validates ISBN-10, ISSN, UPC-A, and EAN-13, can generate a missing
+check digit, and lets you pin the format with `--type`. It doesn't yet
+handle ISMN, read from stdin, or have a test suite. See the roadmap in the
+project tracker for what's next.

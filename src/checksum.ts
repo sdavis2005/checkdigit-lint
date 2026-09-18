@@ -1,13 +1,15 @@
-// Check-digit math for the three code formats this tool understands.
-// All three reduce to "weighted sum of body digits, check digit fills the
+// Check-digit math for the four code formats this tool understands.
+// All four reduce to "weighted sum of body digits, check digit fills the
 // remainder to a multiple of the modulus" but the weights and modulus differ
-// enough (and the ISBN-10 'X' sentinel is odd enough) that a single generic
-// function would need more branching than just writing three functions.
+// enough (and the mod-11 'X' sentinel is odd enough) that a single generic
+// function would need more branching than just writing four functions.
 
-export type CodeKind = "ISBN-10" | "UPC-A" | "EAN-13";
+export type CodeKind = "ISBN-10" | "UPC-A" | "EAN-13" | "ISSN";
 
 export function kindForLength(digitCount: number): CodeKind | undefined {
   switch (digitCount) {
+    case 8:
+      return "ISSN";
     case 10:
       return "ISBN-10";
     case 12:
@@ -19,11 +21,13 @@ export function kindForLength(digitCount: number): CodeKind | undefined {
   }
 }
 
-// Same three formats, but keyed on the length of the body alone (full length
+// Same formats, but keyed on the length of the body alone (full length
 // minus the check digit) — what --generate sees, since the whole point is
 // that the check digit isn't there yet.
 export function kindForBodyLength(bodyLength: number): CodeKind | undefined {
   switch (bodyLength) {
+    case 7:
+      return "ISSN";
     case 9:
       return "ISBN-10";
     case 11:
@@ -64,6 +68,16 @@ export function ean13CheckDigit(body: readonly number[]): number {
   return (10 - (sum % 10)) % 10;
 }
 
+// body has 7 digits. Same mod-11 shape as ISBN-10 but weights count down from
+// 8 instead of 10, since the body is two digits shorter.
+export function issnCheckDigit(body: readonly number[]): number {
+  let sum = 0;
+  for (let i = 0; i < body.length; i++) {
+    sum += body[i]! * (8 - i);
+  }
+  return (11 - (sum % 11)) % 11;
+}
+
 export function expectedCheckDigit(kind: CodeKind, body: readonly number[]): number {
   switch (kind) {
     case "ISBN-10":
@@ -72,6 +86,8 @@ export function expectedCheckDigit(kind: CodeKind, body: readonly number[]): num
       return upcACheckDigit(body);
     case "EAN-13":
       return ean13CheckDigit(body);
+    case "ISSN":
+      return issnCheckDigit(body);
   }
 }
 
@@ -88,6 +104,8 @@ export function lengthForKind(kind: CodeKind): number {
       return 12;
     case "EAN-13":
       return 13;
+    case "ISSN":
+      return 8;
   }
 }
 
@@ -100,6 +118,8 @@ export function bodyLengthForKind(kind: CodeKind): number {
       return 11;
     case "EAN-13":
       return 12;
+    case "ISSN":
+      return 7;
   }
 }
 
@@ -117,6 +137,8 @@ export function parseCodeKind(value: string): CodeKind | undefined {
     case "ean13":
     case "ean-13":
       return "EAN-13";
+    case "issn":
+      return "ISSN";
     default:
       return undefined;
   }
